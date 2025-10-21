@@ -1,11 +1,28 @@
 # text-todos
 Simple text file driven todo list
 
-## Text file
+## Installation
+
+Save .todos to your ~/ home directory.
+
+Add `source ~/.todos` to your ~/.zshrc
+
+Run `source ~/.zshrc` to load the file and enable the `todo` command
+
+## Text file example
 
 ```
 todo get milk
 done walk the dog
+```
+
+## Example todo output
+
+```
+> todo
+
+1 get milk
+2 walk the dog
 ```
 
 ## Commands
