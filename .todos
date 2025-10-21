@@ -1,0 +1,104 @@
+#!/usr/bin/env zsh
+
+# Todo management functions
+
+todo() {
+    if [[ $# -eq 0 ]]; then
+        if [[ -f "todo" ]]; then
+            awk '{
+                if (/^done/) {
+                    gsub(/^done/, NR)
+                    printf "\033[9m%s\033[0m\n", $0
+                } else {
+                    gsub(/^todo/, NR)
+                    print
+                }
+            }' todo
+        else
+            echo "No todo file found"
+        fi
+    elif [[ "$1" == "add" || "$1" == "a" ]]; then
+        shift
+        echo "todo $*" >> todo
+        echo "Added: todo $*"
+    elif [[ "$1" == "done" || "$1" == "d" ]]; then
+        if [[ -z "$2" || ! "$2" =~ ^[0-9]+$ ]]; then
+            echo "Usage: todo done <line_number>"
+            return 1
+        fi
+        if [[ ! -f "todo" ]]; then
+            echo "No todo file found"
+            return 1
+        fi
+        local line_num="$2"
+        local total_lines=$(wc -l < todo)
+        if [[ $line_num -lt 1 || $line_num -gt $total_lines ]]; then
+            echo "Line number $line_num is out of range (1-$total_lines)"
+            return 1
+        fi
+        local line_content=$(sed -n "${line_num}p" todo)
+        local todo_text=$(echo "$line_content" | cut -d' ' -f2-)
+        if [[ "$line_content" =~ ^todo ]]; then
+            sed -i '' "${line_num}s/^todo/done/" todo
+            echo "Done $line_num: $todo_text"
+        elif [[ "$line_content" =~ ^done ]]; then
+            sed -i '' "${line_num}s/^done/todo/" todo
+            echo "Todo $line_num: $todo_text"
+        else
+            echo "Line $line_num doesn't start with 'todo' or 'done'"
+            return 1
+        fi
+    elif [[ "$1" == "remove" || "$1" == "r" ]]; then
+        if [[ -z "$2" || ! "$2" =~ ^[0-9]+$ ]]; then
+            echo "Usage: todo remove <line_number>"
+            return 1
+        fi
+        if [[ ! -f "todo" ]]; then
+            echo "No todo file found"
+            return 1
+        fi
+        local line_num="$2"
+        local total_lines=$(wc -l < todo)
+        if [[ $line_num -lt 1 || $line_num -gt $total_lines ]]; then
+            echo "Line number $line_num is out of range (1-$total_lines)"
+            return 1
+        fi
+        local removed_text=$(sed -n "${line_num}p" todo | cut -d' ' -f2-)
+        sed -i '' "${line_num}d" todo
+        echo "Removed $line_num: $removed_text"
+    elif [[ "$1" == "clear" || "$1" == "c" ]]; then
+        if [[ -f "todo" ]]; then
+            > todo
+            echo "Todo list cleared"
+        else
+            echo "No todo file to clear"
+        fi
+    elif [[ "$1" == "help" || "$1" == "h" ]]; then
+        cat << 'EOF'
+Todo Commands:
+
+  todo                     Show all todos with line numbers
+                           Example: 1 buy groceries
+                                    2 walk the dog
+
+  todo add <text>          Add a new todo (creates todo file if needed)
+  todo a   <text>          Example: todo add buy milk
+                           Output:  Added: todo buy milk
+
+  todo done <line_num>     Toggle todo/done state
+  todo d    <line_num>     Example: todo done 2
+                           Output:  Done 2: walk the dog
+
+  todo remove <line_num>   Remove a todo completely
+  todo r      <line_num>   Example: todo remove 1
+                           Output:  Removed 1: buy groceries
+
+  todo clear               Clear all todos
+  todo c                   Example: todo clear
+                           Output:  Todo list cleared
+
+  todo help                Show this help
+  todo h
+EOF
+    fi
+}
